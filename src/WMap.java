@@ -213,8 +213,10 @@ public class WMap {
         return rack_n;
     }
 
-    public int n_racks(Coord c1, Coord c2){
+    public int n_racks(graspElement ge1, graspElement ge2){
         // Numero de racks entre 2 puntos
+        Coord c1 = ge1.coord;
+        Coord c2 = ge2.coord;
         int rack_n=0;
         // Revisamos si no encuentran en paralelo
         if (c1.y==c2.y || c1.x==c2.x){

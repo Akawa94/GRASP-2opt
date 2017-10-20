@@ -9,11 +9,12 @@ public class graspElement{
     public graspElement(){
 
     }
-    public graspElement(Coord c, int i,int k){
+
+    public graspElement(Coord c, int cost,int index){
         super();
         this.coord = c;
-        this.distances_index = k;
-        this.cost = i;
+        this.distances_index = index;
+        this.cost = cost;
     }
 
     public static void print_list(ArrayList<graspElement> list){

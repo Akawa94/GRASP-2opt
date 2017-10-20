@@ -1,11 +1,10 @@
-import org.omg.CORBA.CODESET_INCOMPATIBLE;
-
 import java.util.*;
 
 public class Grasp {
-    private int[][] distances; // grid of distances for future check
+    private Route[][] distances; // grid of distances for future check
     private WMap wmap;
     private double alpha = 1;
+    private int n_grasp_routes=8;
     // private Products prods;
 
     private Coord origin_prod(Coord c_prod){
@@ -44,24 +43,73 @@ public class Grasp {
         return new Coord(origin_prod[0],origin_prod[1]);
     }
 
+    private int[][] markdown_map(int[][] map,Coord c1,Route route){
+        Coord ant=c1;
+        int[][] retornable = map;
+        for (Coord c:route.esquinas){
+            for (int i = 0; i < Math.abs(ant.x-c.x + (ant.y-c.y)); i++) {
+                if (ant.y==c.y){
+                    map[c.y][ant.x+i*(-1)*(ant.x-c.x)/(Math.abs(ant.y-c.y))]=2;
+                }else{
+                    map[c.y+i*(-1)*(ant.y-c.y)/(Math.abs(ant.y-c.y))][ant.x]=2;
+                }
+                ant=c;
+            }
+        }
+        return map;
+    }
 
 
-    private int distance(Coord prod1, Coord prod2, int[][] map, int max_turns){
+
+    private int distance(Route route,graspElement prod1, int dist_index_p1, graspElement prod2, int[][] map, int max_turns){
         // all in [y,x] format
 
         // Will advance in straight line as preferred, turns will only occur when not possible to advance
 
         // Directionality 'u' Up | 'd' Down | 'l' left | 'r' right
+        int esc = this.distances[dist_index_p1][prod2.distances_index].cost;
+        esc= (esc!=-1?esc:this.distances[prod2.distances_index][dist_index_p1].cost); // just in case
+        if (esc != -1) return esc; // already saved in distances matrix
 
+        // GRASP ROUTE LOGIC
 
+        // Will generate n random routes of 3 turns each, then selecting one random in aplha range
+        ArrayList<Route> route_bag = new ArrayList<Route>();
+        int[][] costos = new int[this.n_grasp_routes][2];
+        for (int i = 0; i < this.n_grasp_routes; i++) {
+            route_bag.add(new Route(route,prod1.coord,prod2.coord,map));
+            int size = route_bag.get(route_bag.size()-1).esquinas.size();
+            // cogemos ultima coord
+            Coord c_test = route_bag.get(route_bag.size()-1).esquinas.get(size-1);
+            costos[i][0]=i;
+            // will evaluate each route by its n_rack
+            costos[i][1]=this.wmap.n_racks(new graspElement(c_test,-1,-1),prod2);
+        }
+         // sorts the list
+        new Route().qs_sort(costos,0,this.n_grasp_routes-1);
+        Random generator = new Random();
+        int k = generator.nextInt((int)(costos.length*alpha));
+        Route picked_route1=route_bag.remove(k);
+        Coord last_c1 = picked_route1.esquinas.get(picked_route1.esquinas.size()-1);
+        // markdown map
+        int[][] map_c1=markdown_map(map.clone(),prod1.coord,picked_route1);
 
+        // recursive
+        int r_distance1 = distance(picked_route1,new graspElement(last_c1,-1,-1),dist_index_p1,prod2,map_c1,max_turns-3>=0?max_turns-3:0);
+        // checks if it has been completed
+        if (r_distance1 != -1) return r_distance1;
 
+        // markdown 2nd map
+        k = generator.nextInt((int)((costos.length-1)*alpha));
+        Route picked_route2=route_bag.remove(k);
+        Coord last_c2=picked_route2.esquinas.get(picked_route2.esquinas.size()-1);
+        int[][] map_c2=markdown_map(map.clone(),prod1.coord,picked_route2);
+        // recursive
+        int r_distance2 = distance(picked_route2,new graspElement(last_c2,-1,-1),dist_index_p1,prod2,map.clone(),max_turns-3>=0?max_turns-3:0);
+        // checks if it has been completed
+        if (r_distance2 != -1) return r_distance2;
 
-//        Random generator = new Random();
-//        int i = generator.nextInt(10);
-
-
-        return this.wmap.n_racks(prod1,prod2);
+        return -1;
     }
 
     public Grasp(WMap wmap, double alpha){
@@ -72,10 +120,12 @@ public class Grasp {
     public void Initialize(Products products){
 
         // Initialize distances matrix at -1
-        this.distances = new int[products.size()][products.size()];
+        // +1 for 0,0 origin
+        this.distances = new Route[products.size()+1][products.size()+1];
         for(int i=0;i<products.size();i++){
             for(int j=0;j<products.size();j++){
-                this.distances[i][j]=-1;
+                this.distances[i][j]=new Route();
+                this.distances[i][j].cost=-1;
             }
         }
     }
@@ -107,15 +157,13 @@ public class Grasp {
                 if (turn_counter==0){
                 // Del origen al primer elemento
                     for( graspElement elem : graspList){
-                        Coord ant = new Coord(0,0);
-                        Coord act = elem.coord;
-                        elem.cost = distance(ant,act,this.wmap.cpReal_map(),this.wmap.n_racks(ant,act));
+                        graspElement ant = new graspElement(new Coord(0,0),0,0);
+                        elem.cost = distance(new Route(),ant,ant.distances_index,elem,this.wmap.cpReal_map(),this.wmap.n_racks(ant,elem));
                     }
                 }else if(turn_counter<products.size()){
                     for(graspElement elem : graspList){
-                        Coord ant = graspSolution.get(turn_counter).coord;
-                        Coord act = elem.coord;
-                        elem.cost = distance(ant, act,this.wmap.cpReal_map(),this.wmap.n_racks(ant,act));
+                        graspElement ant = graspSolution.get(turn_counter);
+                        elem.cost = distance(new Route(),ant,ant.distances_index,elem,this.wmap.cpReal_map(),this.wmap.n_racks(ant,elem));
                     }
                 }
                 // we sort the list
@@ -138,9 +186,9 @@ public class Grasp {
             }else{
                     if(turn_counter == products.size()){
                         graspSolution.add(new graspElement(new Coord(0,0),-1,turn_counter+1));
-                        Coord ant = graspSolution.get(turn_counter).coord;
-                        Coord act = new Coord(0,0);
-                        graspSolution.get(turn_counter+1).cost = distance(ant,act,this.wmap.cpReal_map(),this.wmap.n_racks(ant,act));
+                        graspElement ant = graspSolution.get(turn_counter);
+                        graspElement act = new graspElement(new Coord(0,0),0,0);
+                        graspSolution.get(turn_counter+1).cost = distance(new Route(),ant,ant.distances_index,act,this.wmap.cpReal_map(),this.wmap.n_racks(ant,act));
                         break;
                     }
                 }
