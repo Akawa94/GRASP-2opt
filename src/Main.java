@@ -1,9 +1,10 @@
-import com.sun.prism.image.Coords;
+
 
 import java.util.ArrayList;
-import java.util.Scanner;
+
 
 public class Main {
+
     public static void main(String[] args){
         WMap wmap = new WMap();
         // testing
@@ -17,6 +18,8 @@ public class Main {
         grasp.Initialize(products);
         ArrayList<graspElement> solution = grasp.Solution(products);
 
-        graspElement.print_list(solution);
+        // graspElement.print_list(solution);
+        grasp.print_solution(solution);
+
     }
 }

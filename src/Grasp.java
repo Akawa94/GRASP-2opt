@@ -8,7 +8,7 @@ public class Grasp {
     private double alpha = 1;
     // private Products prods;
 
-    private int[] origin_prod(Coord c_prod){
+    private Coord origin_prod(Coord c_prod){
         int[] prod = new int[2];
         prod[0]=c_prod.y;
         prod[1]=c_prod.x;
@@ -18,7 +18,7 @@ public class Grasp {
         // for bt
         if (prod[0]==0 && prod[1]==0){
             origin_prod = prod.clone();
-            return origin_prod;
+            return new Coord(origin_prod[0],origin_prod[1]);
         }
 
         // Free point in front of product
@@ -41,15 +41,13 @@ public class Grasp {
             origin_prod[0]=0;
             origin_prod[1]=0;
         }
-        return origin_prod;
+        return new Coord(origin_prod[0],origin_prod[1]);
     }
 
 
 
-    private int distance(Coord prod1, Coord prod2, int[][] map){
+    private int distance(Coord prod1, Coord prod2, int[][] map, int max_turns){
         // all in [y,x] format
-        int[] origin1 = origin_prod(prod1);
-        int[] origin2 = origin_prod(prod2);
 
         // Will advance in straight line as preferred, turns will only occur when not possible to advance
 
@@ -59,11 +57,11 @@ public class Grasp {
 
 
 
-        Random generator = new Random();
-        int i = generator.nextInt(10);
+//        Random generator = new Random();
+//        int i = generator.nextInt(10);
 
 
-        return i;
+        return this.wmap.n_racks(prod1,prod2);
     }
 
     public Grasp(WMap wmap, double alpha){
@@ -95,10 +93,10 @@ public class Grasp {
         ArrayList<graspElement> graspSolution = new ArrayList<graspElement>();
         ArrayList<graspElement> graspList = new ArrayList<graspElement>();
 
-        graspSolution.add(new graspElement(new Coord(0,0),-1));
+        graspSolution.add(new graspElement(new Coord(0,0),-1,-1));
 
         for (int k =0; k< products.size();k++){
-            graspList.add(new graspElement(products.getProduct(k),-1));
+            graspList.add(new graspElement(products.getProduct(k),-1,k+1));
         }
 
         // Core del Grasp
@@ -109,11 +107,15 @@ public class Grasp {
                 if (turn_counter==0){
                 // Del origen al primer elemento
                     for( graspElement elem : graspList){
-                        elem.cost = distance(new Coord(0,0),elem.coord,this.wmap.cpReal_map());
+                        Coord ant = new Coord(0,0);
+                        Coord act = elem.coord;
+                        elem.cost = distance(ant,act,this.wmap.cpReal_map(),this.wmap.n_racks(ant,act));
                     }
                 }else if(turn_counter<products.size()){
                     for(graspElement elem : graspList){
-                        elem.cost = distance(graspSolution.get(turn_counter).coord,elem.coord,this.wmap.cpReal_map());
+                        Coord ant = graspSolution.get(turn_counter).coord;
+                        Coord act = elem.coord;
+                        elem.cost = distance(ant, act,this.wmap.cpReal_map(),this.wmap.n_racks(ant,act));
                     }
                 }
                 // we sort the list
@@ -135,8 +137,10 @@ public class Grasp {
 
             }else{
                     if(turn_counter == products.size()){
-                        graspSolution.add(new graspElement(new Coord(0,0),-1));
-                        graspSolution.get(turn_counter+1).cost = distance(graspSolution.get(turn_counter).coord,new Coord(0,0),this.wmap.cpReal_map());
+                        graspSolution.add(new graspElement(new Coord(0,0),-1,turn_counter+1));
+                        Coord ant = graspSolution.get(turn_counter).coord;
+                        Coord act = new Coord(0,0);
+                        graspSolution.get(turn_counter+1).cost = distance(ant,act,this.wmap.cpReal_map(),this.wmap.n_racks(ant,act));
                         break;
                     }
                 }
@@ -147,4 +151,11 @@ public class Grasp {
         return graspSolution;
     }
 
+    public void print_solution(ArrayList<graspElement> solution) {
+        int counter = 0;
+        for (graspElement elem : solution){
+            System.out.println("Mi producto n"+counter+" fue el:\t["+elem.coord.y+", "+elem.coord.x+"] y su costo fue: "+elem.cost);
+            counter++;
+        }
+    }
 }

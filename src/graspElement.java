@@ -3,14 +3,16 @@ import java.util.Comparator;
 
 public class graspElement{
     Coord coord;
+    int distances_index;
     int cost;
 
     public graspElement(){
 
     }
-    public graspElement(Coord c, int i){
+    public graspElement(Coord c, int i,int k){
         super();
         this.coord = c;
+        this.distances_index = k;
         this.cost = i;
     }
 
