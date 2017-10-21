@@ -9,8 +9,9 @@ public class WMap {
     public WMap(){
         super();
         Scanner keyboard = new Scanner(System.in);
-        System.out.print("Ingrese la direccion del mapa: ");
-        String filename = keyboard.nextLine();
+//        System.out.print("Ingrese la direccion del mapa: ");
+//        String filename = keyboard.nextLine();
+        String filename = "/media/Multimedia/Projects/GitProjects/GRASP-OPT2/Inputs/map_0.txt";
         initialize(filename);
     }
 
@@ -229,7 +230,7 @@ public class WMap {
             }
         }else{
             // Revisamos racks en diagonal y por diff de coordenadas
-            System.out.println("Entre a diagonal con las coords [" + c1.y + ", "+c1.x+"] y ["+c2.y + ", "+c2.x+"].");
+            //System.out.println("Entre a diagonal con las coords [" + c1.y + ", "+c1.x+"] y ["+c2.y + ", "+c2.x+"].");
             rack_n+=n_racks_diagonal(c1,c2);
             rack_n+=n_racks_diff(c1,c2);   // peso doble
             return rack_n/3;

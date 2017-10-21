@@ -29,8 +29,9 @@ public class Products {
         super();
         Scanner keyboard = new Scanner(System.in);
         System.out.println();
-        System.out.print("Ingrese la direccion de los productos: ");
-        String filename = keyboard.nextLine();
+//        System.out.print("Ingrese la direccion de los productos: ");
+//        String filename = keyboard.nextLine();
+        String filename="/media/Multimedia/Projects/GitProjects/GRASP-OPT2/Inputs/coordinates_0.txt";
         initialize(filename);
     }
 
